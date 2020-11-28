@@ -50,8 +50,17 @@ class Indicator extends PanelMenu.Button {
     _init() {
         super._init(0.0, _('Simple Monitor'));
 
-        //Just a counter
+        //Counter and cpu diffs
         var i;
+        let s = new Array(4);   //Current reading
+        let s_o = new Array(4); //Old reading
+        let s_d = new Array(4); //Difference
+        for (i = 0; i < 4; i++) {
+            s[i] = 0;
+            s_d[i] = 0;
+            s_o[i] = 0;
+        }
+        
         //Icons
         let cpuGioIcon = Gio.icon_new_for_string(Me.path + '/icons/cpu-symbolic.svg');
         let cpuIcon = new St.Icon({gicon: cpuGioIcon, style_class: 'system-status-icon', x_align: Clutter.ActorAlign.CENTER, x_expand: true, y_align: Clutter.ActorAlign.CENTER, y_expand: true});
@@ -142,7 +151,12 @@ class Indicator extends PanelMenu.Button {
                     }
                 }
             }
-            let cpuPerc = 100*(sAc[0]+sAc[1]+sAc[2])/(sAc[0]+sAc[1]+sAc[2]+sAc[3]);
+            for (i = 0; i < 4; i++) {
+                s_o[i] = s[i];
+                s[i] = sAc[i];
+                s_d[i] = s[i]-s_o[i];
+            }
+            let cpuPerc = 100*(s_d[0]+s_d[1]+s_d[2])/(s_d[0]+s_d[1]+s_d[2]+s_d[3]);
             let toPrint = ('  '+cpuPerc.toFixed(1)+'%').slice(-6);
             cpuPanelLabel.set_text(toPrint);
         }
