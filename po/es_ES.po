@@ -1,0 +1,38 @@
+# Spanish translations for PACKAGE package.
+# Copyright (C) 2020 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# fer <fernancp444@gmail.com>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-11-28 03:00+0100\n"
+"PO-Revision-Date: 2020-11-28 03:01+0100\n"
+"Last-Translator: fer <fernancp444@gmail.com>\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ASCII\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: extension.js:48
+msgid "Simple Monitor"
+msgstr "Simple Monitor"
+
+#: extension.js:80 extension.js:81
+msgid "Process"
+msgstr "Proceso"
+
+#: extension.js:82
+msgid "Cpu%"
+msgstr "Cpu%"
+
+#: extension.js:83
+msgid "Mem%"
+msgstr "Mem%"
+
+#: extension.js:87
+msgid "Refresh"
+msgstr "Recalcular"
