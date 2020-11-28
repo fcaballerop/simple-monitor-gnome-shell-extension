@@ -2,7 +2,7 @@
   "name": "Simple monitor",
   "description": "A simple panel button that shows CPU and RAM memory usage. Clicking shows the top 10 processes using CPU and memory.",
   "gettext-domain": "example",
-  "uuid": "simple-monitor@fcaballero.github.io",
+  "uuid": "simple-monitor@fcaballerop.github.io",
   "shell-version": [
     "3.38"
   ]
