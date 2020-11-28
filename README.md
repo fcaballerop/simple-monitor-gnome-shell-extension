@@ -4,6 +4,6 @@ Simple monitor extension for GNOME. Shows a widget on the top panel with the per
 
 ## Installation
 
-To install, clone repository and copy it in ~/.local/config/gnome-shell/extensions/simple-monitor@fcaballero.github.io
+To install, clone repository and copy it in ~/.local/share/gnome-shell/extensions/simple-monitor@fcaballerop.github.io
 
 After doing so, restart the GNOME shell by doing Alt+F2 and inserting 'r' in the prompt. It will then be available in the 'Extensions' configuration screen.
