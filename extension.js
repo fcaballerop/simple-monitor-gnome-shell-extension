@@ -52,6 +52,7 @@ class Indicator extends PanelMenu.Button {
 
         //Counter and cpu diffs
         var i;
+        var j;
         let s = new Array(4);   //Current reading
         let s_o = new Array(4); //Old reading
         let s_d = new Array(4); //Difference
@@ -60,13 +61,26 @@ class Indicator extends PanelMenu.Button {
             s_d[i] = 0;
             s_o[i] = 0;
         }
-        
+
         //Icons
         let cpuGioIcon = Gio.icon_new_for_string(Me.path + '/icons/cpu-symbolic.svg');
-        let cpuIcon = new St.Icon({gicon: cpuGioIcon, style_class: 'system-status-icon', x_align: Clutter.ActorAlign.CENTER, x_expand: true, y_align: Clutter.ActorAlign.CENTER, y_expand: true});
+        let cpuIcon = new St.Icon({
+          gicon: cpuGioIcon,
+          style_class: 'system-status-icon',
+          x_align: Clutter.ActorAlign.CENTER,
+          x_expand: true,
+          y_align: Clutter.ActorAlign.CENTER,
+          y_expand: true
+        });
         let memGioIcon = Gio.icon_new_for_string(Me.path + '/icons/mem-symbolic.svg');
-        let memIcon = new St.Icon({gicon: memGioIcon, style_class: 'system-status-icon', x_align: Clutter.ActorAlign.CENTER, x_expand: true, y_align: Clutter.ActorAlign.CENTER, y_expand: true});
-
+        let memIcon = new St.Icon({
+          gicon: memGioIcon,
+          style_class: 'system-status-icon',
+          x_align: Clutter.ActorAlign.CENTER,
+          x_expand: true,
+          y_align: Clutter.ActorAlign.CENTER,
+          y_expand: true
+        });
         //Boxes
         let box = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         let cputbox = new St.BoxLayout({ height: 25.0, style_class: 'popup-status-menu-box' });
@@ -101,57 +115,81 @@ class Indicator extends PanelMenu.Button {
             Update();
         });
 
+        let freeCmd = "";
+        let psMemCmd = "";
+        let psCpuCmd = "";
+        let procCmd = "";
+        //let freeFull = "";
         //Main Update function
         function Update() {
-            let cpuR = GLib.spawn_command_line_sync(`ps axch -o cmd:15,%cpu --sort=-%cpu`)[1];
-            let memR = GLib.spawn_command_line_sync(`ps axch -o cmd:15,%mem --sort=-%mem`)[1];
-            let freeFull = GLib.spawn_command_line_sync(`free -h`)[1];
+          //Run free -h
+          try {
+            let [ex, pid, stdinFd, stdoutFd, stderrFd] =
+              GLib.spawn_async_with_pipes(null, ["free", "-h"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
+            let [ex2, pid2, stdinFd2, stdoutFd2, stderrFd2] =
+              GLib.spawn_async_with_pipes(null, ["ps", "axch" ,"-o", "cmd:15,%cpu", "--sort=-%cpu"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
+            let [ex3, pid3, stdinFd3, stdoutFd3, stderrFd3] =
+              GLib.spawn_async_with_pipes(null, ["ps", "axch" ,"-o", "cmd:15,%mem", "--sort=-%mem"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
+            let [ex4, pid4, stdinFd4, stdoutFd4, stderrFd4] =
+              GLib.spawn_async_with_pipes(null, ["cat", "/proc/stat"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
+            let stdout = new Gio.UnixInputStream({fd: stdoutFd, close_fd: true});
+            let outReader = new Gio.DataInputStream({base_stream: stdout});
+            let stdout2 = new Gio.UnixInputStream({fd: stdoutFd2, close_fd: true});
+            let outReader2 = new Gio.DataInputStream({base_stream: stdout2});
+            let stdout3 = new Gio.UnixInputStream({fd: stdoutFd3, close_fd: true});
+            let outReader3 = new Gio.DataInputStream({base_stream: stdout3});
+            let stdout4 = new Gio.UnixInputStream({fd: stdoutFd4, close_fd: true});
+            let outReader4 = new Gio.DataInputStream({base_stream: stdout4});
+            GLib.close(stdinFd); GLib.close(stdinFd2); GLib.close(stdinFd3); GLib.close(stdinFd4);
+
+            let output = [], output2 = [], output3 = [], output4 = [];
+            let [line, size] = [null, 0], [line2, size2] = [null, 0], [line3, size3] = [null, 0], [line4, size4] = [null, 0];
+
+            while (([line, size] = outReader.read_line(null)) != null && line != null) {
+                if(line) output.push(ByteArray.toString(line));
+            }
+            while (([line2, size2] = outReader2.read_line(null)) != null && line2 != null) {
+                if(line2) output2.push(ByteArray.toString(line2));
+            }
+            while (([line3, size3] = outReader3.read_line(null)) != null && line3 != null) {
+                if(line3) output3.push(ByteArray.toString(line3));
+            }
+            while (([line4, size4] = outReader4.read_line(null)) != null && line4 != null) {
+                if(line4) output4.push(ByteArray.toString(line4));
+            }
+
+            stdout.close(null); stdout2.close(null); stdout3.close(null); stdout4.close(null);
+            freeCmd = output;
+            psCpuCmd = output2;
+            psMemCmd = output3;
+            procCmd = output4;
+          } catch (e) {
+            log(e.toString());
+          }
             let cpuusage = GLib.spawn_command_line_sync(`cat /proc/stat`)[1];
-            let freeStr = ByteArray.toString(freeFull);
-            let freeArr = freeStr.split('\n')[1];
-            let strcpu = ByteArray.toString(cpuR);
-            let strmem = ByteArray.toString(memR);
             let cpuToProc = ByteArray.toString(cpuusage).split('\n')[0];
             for (i = 0; i < 10; i++) {
-                let substr = strcpu.substring(21*i,21*(i+1)-1).split(' ');
-                cpuNameLabels[i].set_text(substr[0]);
-                cpulLabels[i].set_text(substr[substr.length - 1]);
-                let substrM = strmem.substring(21*i,21*(i+1)-1).split(' ');
-                memNameLabels[i].set_text(substrM[0]);
-                memlLabels[i].set_text(substrM[substrM.length - 1]);
+              let cpuSpl = psCpuCmd[i].split(/[ ]+/);
+              let cpuName = "";
+              for (j = 0; j < cpuSpl.length - 1; j++) {
+                cpuName += cpuSpl[j]+" ";
+              }
+              cpuNameLabels[i].set_text(cpuName);
+              cpulLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
+              let memSpl = psMemCmd[i].split(/[ ]+/);
+              let memName = "";
+              for (j = 0; j < cpuSpl.length - 1; j++) {
+                memName += memSpl[j]+" ";
+              }
+              memNameLabels[i].set_text(memName);
+              memlLabels[i].set_text(memSpl[memSpl.length - 1]);
             }
-            let totMem = "";
-            let useMem = "";
-            let freeSplt = freeArr.split(' ');
-            let totFound = 0;
-            for (i = 1; i < freeSplt.length; i++) {
-                if (freeSplt[i] != '')
-                {
-                    if (totFound == 0) {
-                        totFound = 1;
-                        totMem = freeSplt[i];
-                    }
-                    else {
-                        useMem = freeSplt[i];
-                        break;
-                    }
-                }
-            }
-            memPanelLabel.set_text(' '+useMem+'/'+totMem);
-            let cpuArr = cpuToProc.split(' ');
+            let freeSpl = freeCmd[1].split(/[ ]+/);
+            memPanelLabel.set_text(' '+freeSpl[2]+'/'+freeSpl[1]);
+            let cpuUse = procCmd[0].split(/[ ]+/);
             let sAc = new Array(4);
-            let counter = 0;
-            for (i = 1; i < cpuArr.length; i++) {
-                if (cpuArr[i] != '')
-                {
-                    sAc[counter] = parseFloat(cpuArr[i]);
-                    counter += 1;
-                    if (counter == 4) {
-                        break;
-                    }
-                }
-            }
             for (i = 0; i < 4; i++) {
+                sAc[i] = parseFloat(cpuUse[i+1]);
                 s_o[i] = s[i];
                 s[i] = sAc[i];
                 s_d[i] = s[i]-s_o[i];
@@ -189,12 +227,9 @@ class Indicator extends PanelMenu.Button {
             this.menu.box.add(memBoxes[i]);
         }
         this.menu.addMenuItem(refreshButton);
-        
-        //Begin
-        //We don't wait for a first update
+
         Update();
 
-        //Add timer to main event loop
         this._eventLoop = Mainloop.timeout_add_seconds(5, Lang.bind(this, function (){
             Update();
             return true;
@@ -204,6 +239,7 @@ class Indicator extends PanelMenu.Button {
     _onDestroy(){
         Mainloop.source_remove(this._eventLoop);
         this.menu.removeAll();
+        super._onDestroy();
     }
 });
 
