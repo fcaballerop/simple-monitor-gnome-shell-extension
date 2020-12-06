@@ -166,6 +166,9 @@ class Indicator extends PanelMenu.Button {
           } catch (e) {
             log(e.toString());
           }
+          if (freeCmd == "" || psCpuCmd == "" || psMemCmd == "" || procCmd == "") {
+            return;
+          }
             let cpuusage = GLib.spawn_command_line_sync(`cat /proc/stat`)[1];
             let cpuToProc = ByteArray.toString(cpuusage).split('\n')[0];
             for (i = 0; i < 10; i++) {
