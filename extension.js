@@ -45,6 +45,62 @@ const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 
+/**
+ * Function taken from Andy Holmes @ andyholmes[dot]ca
+* Execute a command asynchronously and return the output from `stdout` on
+* success or throw an error with output from `stderr` on failure.
+*
+* If given, @input will be passed to `stdin` and @cancellable can be used to
+* stop the process before it finishes.
+*
+* @param {string[]} argv - a list of string arguments
+* @param {string} [input] - Input to write to `stdin` or %null to ignore
+* @param {Gio.Cancellable} [cancellable] - optional cancellable object
+* @returns {Promise<string>} - The process output
+*/
+async function execCommunicate(argv, input = null, cancellable = null) {
+  let cancelId = 0;
+  let flags = (Gio.SubprocessFlags.STDOUT_PIPE |
+               Gio.SubprocessFlags.STDERR_PIPE);
+
+  if (input !== null)
+      flags |= Gio.SubprocessFlags.STDIN_PIPE;
+
+  let proc = new Gio.Subprocess({
+      argv: argv,
+      flags: flags
+  });
+  proc.init(cancellable);
+  
+  if (cancellable instanceof Gio.Cancellable) {
+      cancelId = cancellable.connect(() => proc.force_exit());
+  }
+
+  return new Promise((resolve, reject) => {
+      proc.communicate_utf8_async(input, null, (proc, res) => {
+          try {
+              let [, stdout, stderr] = proc.communicate_utf8_finish(res);
+              let status = proc.get_exit_status();
+
+              if (status !== 0) {
+                  throw new Gio.IOErrorEnum({
+                      code: Gio.io_error_from_errno(status),
+                      message: stderr ? stderr.trim() : GLib.strerror(status)
+                  });
+              }
+
+              resolve(stdout.trim());
+          } catch (e) {
+              reject(e);
+          } finally {
+              if (cancelId > 0) {
+                  cancellable.disconnect(cancelId);
+              }
+          }
+      });
+  });
+}
+
 const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
     _init() {
@@ -122,74 +178,11 @@ class Indicator extends PanelMenu.Button {
         //let freeFull = "";
         //Main Update function
         function Update() {
-          //Run free -h
-          try {
-            let [ex, pid, stdinFd, stdoutFd, stderrFd] =
-              GLib.spawn_async_with_pipes(null, ["free", "-h"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
-            let [ex2, pid2, stdinFd2, stdoutFd2, stderrFd2] =
-              GLib.spawn_async_with_pipes(null, ["ps", "axch" ,"-o", "cmd:15,%cpu", "--sort=-%cpu"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
-            let [ex3, pid3, stdinFd3, stdoutFd3, stderrFd3] =
-              GLib.spawn_async_with_pipes(null, ["ps", "axch" ,"-o", "cmd:15,%mem", "--sort=-%mem"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
-            let [ex4, pid4, stdinFd4, stdoutFd4, stderrFd4] =
-              GLib.spawn_async_with_pipes(null, ["cat", "/proc/stat"], null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
-            let stdout = new Gio.UnixInputStream({fd: stdoutFd, close_fd: true});
-            let outReader = new Gio.DataInputStream({base_stream: stdout});
-            let stdout2 = new Gio.UnixInputStream({fd: stdoutFd2, close_fd: true});
-            let outReader2 = new Gio.DataInputStream({base_stream: stdout2});
-            let stdout3 = new Gio.UnixInputStream({fd: stdoutFd3, close_fd: true});
-            let outReader3 = new Gio.DataInputStream({base_stream: stdout3});
-            let stdout4 = new Gio.UnixInputStream({fd: stdoutFd4, close_fd: true});
-            let outReader4 = new Gio.DataInputStream({base_stream: stdout4});
-            GLib.close(stdinFd); GLib.close(stdinFd2); GLib.close(stdinFd3); GLib.close(stdinFd4);
 
-            let output = [], output2 = [], output3 = [], output4 = [];
-            let [line, size] = [null, 0], [line2, size2] = [null, 0], [line3, size3] = [null, 0], [line4, size4] = [null, 0];
+          let cpuOut = execCommunicate(['cat', '/proc/stat']);
 
-            while (([line, size] = outReader.read_line(null)) != null && line != null) {
-                if(line) output.push(ByteArray.toString(line));
-            }
-            while (([line2, size2] = outReader2.read_line(null)) != null && line2 != null) {
-                if(line2) output2.push(ByteArray.toString(line2));
-            }
-            while (([line3, size3] = outReader3.read_line(null)) != null && line3 != null) {
-                if(line3) output3.push(ByteArray.toString(line3));
-            }
-            while (([line4, size4] = outReader4.read_line(null)) != null && line4 != null) {
-                if(line4) output4.push(ByteArray.toString(line4));
-            }
-
-            stdout.close(null); stdout2.close(null); stdout3.close(null); stdout4.close(null);
-            freeCmd = output;
-            psCpuCmd = output2;
-            psMemCmd = output3;
-            procCmd = output4;
-          } catch (e) {
-            log(e.toString());
-          }
-          if (freeCmd == "" || psCpuCmd == "" || psMemCmd == "" || procCmd == "") {
-            return;
-          }
-            let cpuusage = GLib.spawn_command_line_sync(`cat /proc/stat`)[1];
-            let cpuToProc = ByteArray.toString(cpuusage).split('\n')[0];
-            for (i = 0; i < 10; i++) {
-              let cpuSpl = psCpuCmd[i].split(/[ ]+/);
-              let cpuName = "";
-              for (j = 0; j < cpuSpl.length - 1; j++) {
-                cpuName += cpuSpl[j]+" ";
-              }
-              cpuNameLabels[i].set_text(cpuName);
-              cpulLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
-              let memSpl = psMemCmd[i].split(/[ ]+/);
-              let memName = "";
-              for (j = 0; j < cpuSpl.length - 1; j++) {
-                memName += memSpl[j]+" ";
-              }
-              memNameLabels[i].set_text(memName);
-              memlLabels[i].set_text(memSpl[memSpl.length - 1]);
-            }
-            let freeSpl = freeCmd[1].split(/[ ]+/);
-            memPanelLabel.set_text(' '+freeSpl[2]+'/'+freeSpl[1]);
-            let cpuUse = procCmd[0].split(/[ ]+/);
+          cpuOut.then(function(result) {
+            let cpuUse = result.split(/[ ]+/);
             let sAc = new Array(4);
             for (i = 0; i < 4; i++) {
                 sAc[i] = parseFloat(cpuUse[i+1]);
@@ -200,6 +193,46 @@ class Indicator extends PanelMenu.Button {
             let cpuPerc = 100*(s_d[0]+s_d[1]+s_d[2])/(s_d[0]+s_d[1]+s_d[2]+s_d[3]);
             let toPrint = ('  '+cpuPerc.toFixed(1)+'%').slice(-6);
             cpuPanelLabel.set_text(toPrint);
+          });
+
+          let memOut = execCommunicate(['free']);
+
+          memOut.then(function(result) {
+            let lines = result.split("\n");
+            let freeSpl = lines[1].split(/[ ]+/);
+            let percmem = parseFloat(freeSpl[2])*100.0/parseFloat(freeSpl[1]);
+            memPanelLabel.set_text(('  '+percmem.toFixed(1)+'%').slice(-6));
+          });
+
+          let cpuPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%cpu', '--sort=-%cpu']);
+
+          cpuPOut.then(function(result) {
+            let procs = result.split("\n");
+            for (i = 0; i < 10; i++) {
+              let cpuSpl = procs[i].split(/[ ]+/);
+              let cpuName = "";
+              for (j = 0; j < cpuSpl.length - 1; j++) {
+                cpuName += cpuSpl[j]+" ";
+              }
+              cpuNameLabels[i].set_text(cpuName);
+              cpulLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
+            }
+          });
+
+          let memPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%mem', '--sort=-%mem']);
+
+          memPOut.then(function(result) {
+            let procs = result.split("\n");
+            for (i = 0; i < 10; i++) {
+              let cpuSpl = procs[i].split(/[ ]+/);
+              let cpuName = "";
+              for (j = 0; j < cpuSpl.length - 1; j++) {
+                cpuName += cpuSpl[j]+" ";
+              }
+              memNameLabels[i].set_text(cpuName);
+              memlLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
+            }
+          });
         }
 
         //Layouts
