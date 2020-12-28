@@ -3,6 +3,7 @@
   "description": "A simple panel button that shows CPU and RAM memory usage. Clicking shows the top 10 processes using CPU and memory.",
   "gettext-domain": "example",
   "name": "Simple monitor",
+  "settings-schema": "org.gnome.shell.extensions.smonitor",
   "shell-version": [
     "3.38"
   ],

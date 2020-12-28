@@ -106,6 +106,8 @@ class Indicator extends PanelMenu.Button {
     _init() {
         super._init(0.0, _('Simple Monitor'));
 
+        let _settings = ExtensionUtils.getSettings();
+
         //Counter and cpu diffs
         var i;
         var j;
@@ -170,17 +172,10 @@ class Indicator extends PanelMenu.Button {
         refreshButton.connect('activate', function () {
             Update();
         });
-
-        let freeCmd = "";
-        let psMemCmd = "";
-        let psCpuCmd = "";
-        let procCmd = "";
-        //let freeFull = "";
         //Main Update function
         function Update() {
 
           let cpuOut = execCommunicate(['cat', '/proc/stat']);
-
           cpuOut.then(function(result) {
             let cpuUse = result.split(/[ ]+/);
             let sAc = new Array(4);
@@ -196,16 +191,21 @@ class Indicator extends PanelMenu.Button {
           });
 
           let memOut = execCommunicate(['free']);
-
           memOut.then(function(result) {
             let lines = result.split("\n");
             let freeSpl = lines[1].split(/[ ]+/);
-            let percmem = parseFloat(freeSpl[2])*100.0/parseFloat(freeSpl[1]);
-            memPanelLabel.set_text(('  '+percmem.toFixed(1)+'%').slice(-6));
+            let lblStr = '';
+            if (_settings.get_boolean('mem-perc')) {
+                let percmem = parseFloat(freeSpl[2])*100.0/parseFloat(freeSpl[1]);
+                lblStr = ('  '+percmem.toFixed(1)+'%').slice(-6);
+            }
+            else {
+                lblStr = ('  ' + (parseFloat(freeSpl[2])/2**20).toFixed(1) + '/' + (parseFloat(freeSpl[1])/2**20).toFixed(0) + 'Gb').slice(-10);
+            }
+            memPanelLabel.set_text(lblStr);
           });
 
           let cpuPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%cpu', '--sort=-%cpu']);
-
           cpuPOut.then(function(result) {
             let procs = result.split("\n");
             for (i = 0; i < 10; i++) {
@@ -220,7 +220,6 @@ class Indicator extends PanelMenu.Button {
           });
 
           let memPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%mem', '--sort=-%mem']);
-
           memPOut.then(function(result) {
             let procs = result.split("\n");
             for (i = 0; i < 10; i++) {
@@ -270,6 +269,10 @@ class Indicator extends PanelMenu.Button {
             Update();
             return true;
         }));
+    }
+
+    _settingsChanged() {
+        this.Update();
     }
 
     _onDestroy(){

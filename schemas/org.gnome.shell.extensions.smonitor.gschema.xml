@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gse-sensors">
+
+  <schema id="org.gnome.shell.extensions.smonitor" path="/org/gnome/shell/extensions/smonitor/">
+
+    <key type="i" name="num-procs">
+      <default>10</default>
+      <summary>Number of processes to show</summary>
+      <description>Number of processes to show</description>
+    </key>
+
+    <key type="b" name="mem-perc">
+      <default>true</default>
+      <summary>Show memory percentage</summary>
+      <description>True for percentage, wrong for memory used</description>
+    </key>
+  </schema>
+</schemalist>
