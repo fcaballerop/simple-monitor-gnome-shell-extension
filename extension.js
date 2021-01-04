@@ -108,6 +108,8 @@ class Indicator extends PanelMenu.Button {
 
         let _settings = ExtensionUtils.getSettings();
 
+        let timeCounter = 0;
+
         //Counter and cpu diffs
         var i;
         var j;
@@ -152,15 +154,15 @@ class Indicator extends PanelMenu.Button {
         for (i = 0; i < 10; i++) {
             cpuBoxes[i] = new St.BoxLayout({ height: 20.0, style_class: 'popup-status-menu-box' });
             memBoxes[i] = new St.BoxLayout({ height: 20.0, style_class: 'popup-status-menu-box' });
-            cpuNameLabels[i] = new St.Label({text: 'temp', x_expand: true, x_align: Clutter.ActorAlign.START, translation_x: 24.0});
-            cpulLabels[i] = new St.Label({text: 'temp', x_expand: true, x_align: Clutter.ActorAlign.END, translation_x: -24.0});
-            memNameLabels[i] = new St.Label({text: 'temp', x_expand: true, x_align: Clutter.ActorAlign.START, translation_x: 24.0});
-            memlLabels[i] = new St.Label({text: 'temp', x_expand: true, x_align: Clutter.ActorAlign.END, translation_x: -24.0});
+            cpuNameLabels[i] = new St.Label({text: '----', x_expand: true, x_align: Clutter.ActorAlign.START, translation_x: 24.0});
+            cpulLabels[i] = new St.Label({text: '----', x_expand: true, x_align: Clutter.ActorAlign.END, translation_x: -24.0});
+            memNameLabels[i] = new St.Label({text: '----', x_expand: true, x_align: Clutter.ActorAlign.START, translation_x: 24.0});
+            memlLabels[i] = new St.Label({text: '----', x_expand: true, x_align: Clutter.ActorAlign.END, translation_x: -24.0});
         }
 
         //Labels
-        let cpuPanelLabel = new St.Label({text: 'temp', x_expand: true, x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, y_expand: true});
-        let memPanelLabel = new St.Label({text: 'temp', x_expand: true, x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, y_expand: true});
+        let cpuPanelLabel = new St.Label({text: '----', x_expand: true, x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, y_expand: true});
+        let memPanelLabel = new St.Label({text: '----', x_expand: true, x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, y_expand: true});
         let procLabel = new St.Label({text: _("Process"), x_expand: true, x_align: Clutter.ActorAlign.START, translation_x: 24.0});
         let procMLabel = new St.Label({text: _("Process"), x_expand: true, x_align: Clutter.ActorAlign.START, translation_x: 24.0});
         let cpuLabel = new St.Label({text: _("Cpu%"), x_expand: true, x_align: Clutter.ActorAlign.END, translation_x: -24.0});
@@ -168,15 +170,28 @@ class Indicator extends PanelMenu.Button {
 
         //Buttons
         let refreshButton = new PopupMenu.PopupBaseMenuItem();
-        refreshButton.actor.add_child(new St.Label({ text: _("Refresh"), x_align: Clutter.ActorAlign.CENTER, x_expand: true }));
+        refreshButton.actor.add_child(new St.Label({ text: _("Settings"), x_align: Clutter.ActorAlign.CENTER, x_expand: true }));
         refreshButton.connect('activate', function () {
-            Update();
+            Util.spawn(["gnome-extensions", "prefs", Me.metadata.uuid]);
         });
         //Main Update function
         function Update() {
 
-          let cpuOut = execCommunicate(['cat', '/proc/stat']);
-          cpuOut.then(function(result) {
+            let cycles = _settings.get_int('sec-update');
+            //log(cycles);
+            if (cycles < 1) cycles = 1;
+            if (cycles > 10) cycles = 10;
+            cycles *= 2;
+            timeCounter++;
+            if (timeCounter % cycles != 0) {
+                return ;;
+            }
+            else {
+                timeCounter = 0;
+            }
+
+            let cpuOut = execCommunicate(['cat', '/proc/stat']);
+            cpuOut.then(function(result) {
             let cpuUse = result.split(/[ ]+/);
             let sAc = new Array(4);
             for (i = 0; i < 4; i++) {
@@ -188,10 +203,10 @@ class Indicator extends PanelMenu.Button {
             let cpuPerc = 100*(s_d[0]+s_d[1]+s_d[2])/(s_d[0]+s_d[1]+s_d[2]+s_d[3]);
             let toPrint = ('  '+cpuPerc.toFixed(1)+'%').slice(-6);
             cpuPanelLabel.set_text(toPrint);
-          });
+            });
 
-          let memOut = execCommunicate(['free']);
-          memOut.then(function(result) {
+            let memOut = execCommunicate(['free']);
+            memOut.then(function(result) {
             let lines = result.split("\n");
             let freeSpl = lines[1].split(/[ ]+/);
             let lblStr = '';
@@ -203,35 +218,35 @@ class Indicator extends PanelMenu.Button {
                 lblStr = ('  ' + (parseFloat(freeSpl[2])/2**20).toFixed(1) + '/' + (parseFloat(freeSpl[1])/2**20).toFixed(0) + 'Gb').slice(-10);
             }
             memPanelLabel.set_text(lblStr);
-          });
+            });
 
-          let cpuPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%cpu', '--sort=-%cpu']);
-          cpuPOut.then(function(result) {
+            let cpuPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%cpu', '--sort=-%cpu']);
+            cpuPOut.then(function(result) {
             let procs = result.split("\n");
             for (i = 0; i < 10; i++) {
-              let cpuSpl = procs[i].split(/[ ]+/);
-              let cpuName = "";
-              for (j = 0; j < cpuSpl.length - 1; j++) {
+                let cpuSpl = procs[i].split(/[ ]+/);
+                let cpuName = "";
+                for (j = 0; j < cpuSpl.length - 1; j++) {
                 cpuName += cpuSpl[j]+" ";
-              }
-              cpuNameLabels[i].set_text(cpuName);
-              cpulLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
+                }
+                cpuNameLabels[i].set_text(cpuName);
+                cpulLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
             }
-          });
+            });
 
-          let memPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%mem', '--sort=-%mem']);
-          memPOut.then(function(result) {
+            let memPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%mem', '--sort=-%mem']);
+            memPOut.then(function(result) {
             let procs = result.split("\n");
             for (i = 0; i < 10; i++) {
-              let cpuSpl = procs[i].split(/[ ]+/);
-              let cpuName = "";
-              for (j = 0; j < cpuSpl.length - 1; j++) {
+                let cpuSpl = procs[i].split(/[ ]+/);
+                let cpuName = "";
+                for (j = 0; j < cpuSpl.length - 1; j++) {
                 cpuName += cpuSpl[j]+" ";
-              }
-              memNameLabels[i].set_text(cpuName);
-              memlLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
+                }
+                memNameLabels[i].set_text(cpuName);
+                memlLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
             }
-          });
+            });
         }
 
         //Layouts
@@ -261,11 +276,12 @@ class Indicator extends PanelMenu.Button {
             memBoxes[i].add(memlLabels[i]);
             this.menu.box.add(memBoxes[i]);
         }
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         this.menu.addMenuItem(refreshButton);
 
         Update();
 
-        this._eventLoop = Mainloop.timeout_add_seconds(5, Lang.bind(this, function (){
+        this._eventLoop = Mainloop.timeout_add(500, Lang.bind(this, function (){
             Update();
             return true;
         }));

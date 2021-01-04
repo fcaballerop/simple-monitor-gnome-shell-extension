@@ -14,5 +14,11 @@
       <summary>Show memory percentage</summary>
       <description>True for percentage, wrong for memory used</description>
     </key>
+
+    <key type="i" name="sec-update">
+      <default>2</default>
+      <summary>Show memory percentage</summary>
+      <description>True for percentage, wrong for memory used</description>
+    </key>
   </schema>
 </schemalist>

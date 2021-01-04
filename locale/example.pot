@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-11-28 03:00+0100\n"
+"POT-Creation-Date: 2020-12-31 22:53+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,22 +17,30 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: extension.js:48
-msgid "Simple monitor"
+#: extension.js:107
+msgid "Simple Monitor"
 msgstr ""
 
-#: extension.js:80 extension.js:81
+#: extension.js:166 extension.js:167
 msgid "Process"
 msgstr ""
 
-#: extension.js:82
+#: extension.js:168
 msgid "Cpu%"
 msgstr ""
 
-#: extension.js:83
+#: extension.js:169
 msgid "Mem%"
 msgstr ""
 
-#: extension.js:87
-msgid "Refresh"
+#: extension.js:173
+msgid "Settings"
+msgstr ""
+
+#: prefs.js:29
+msgid "Show memory percentage"
+msgstr ""
+
+#: prefs.js:31
+msgid "Update every (Sec)"
 msgstr ""
