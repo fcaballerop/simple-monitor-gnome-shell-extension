@@ -210,12 +210,13 @@ class Indicator extends PanelMenu.Button {
             let lines = result.split("\n");
             let freeSpl = lines[1].split(/[ ]+/);
             let lblStr = '';
+            let memUsed = freeSpl[1] - freeSpl[6];
             if (_settings.get_boolean('mem-perc')) {
-                let percmem = parseFloat(freeSpl[2])*100.0/parseFloat(freeSpl[1]);
+                let percmem = parseFloat(memUsed)*100.0/parseFloat(freeSpl[1]);
                 lblStr = ('  '+percmem.toFixed(1)+'%').slice(-6);
             }
             else {
-                lblStr = ('  ' + (parseFloat(freeSpl[2])/2**20).toFixed(1) + '/' + (parseFloat(freeSpl[1])/2**20).toFixed(0) + 'Gb').slice(-10);
+                lblStr = ('  ' + (parseFloat(memUsed)/2**20).toFixed(1) + '/' + (parseFloat(freeSpl[1])/2**20).toFixed(0) + 'Gb').slice(-10);
             }
             memPanelLabel.set_text(lblStr);
             });
