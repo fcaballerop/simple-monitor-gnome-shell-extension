@@ -5,7 +5,9 @@
   "name": "Simple monitor",
   "settings-schema": "org.gnome.shell.extensions.smonitor",
   "shell-version": [
-    "3.38"
+    "3.38",
+    "40",
+    "41"
   ],
   "url": "",
   "uuid": "simple-monitor@fcaballerop.github.io",

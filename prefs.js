@@ -8,6 +8,10 @@ const Me = ExtensionUtils.getCurrentExtension();
 const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
 const _ = Gettext.gettext;
 
+const Config = imports.misc.config;
+const [major] = Config.PACKAGE_VERSION.split('.');
+const shellVersion = Number.parseInt(major);
+
 const modelColumn = {
     label: 0,
     separator: 1
@@ -56,6 +60,8 @@ var MonitorPrefs = new GObject.registerClass(class SimpleMonitorPrefs extends Gt
 
 function buildPrefsWidget() {
     let w = new MonitorPrefs();
-    w.show_all();
+    if (shellVersion < 40) {
+        w.show_all();
+    }
     return w;
 }
