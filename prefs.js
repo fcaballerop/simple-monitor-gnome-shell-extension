@@ -25,10 +25,12 @@ var MonitorPrefs = new GObject.registerClass(class SimpleMonitorPrefs extends Gt
 
         this._settings = ExtensionUtils.getSettings();
 
-        this._addSwitch({key: 'mem-perc', y : 0, x: 0,
-            label: _('Show memory percentage')});
+        this._addSwitch({
+            key: 'mem-perc', y: 0, x: 0,
+            label: _('Show memory percentage')
+        });
 
-        let spinBLabel = new Gtk.Label({label: _('Update every (Sec)'),halign: Gtk.Align.END});
+        let spinBLabel = new Gtk.Label({ label: _('Update every (Sec)'), halign: Gtk.Align.END });
         this.attach(spinBLabel, 0, 1, 1, 1);
         let spinButton = new Gtk.SpinButton();
         spinButton.set_sensitive(true);
@@ -39,13 +41,13 @@ var MonitorPrefs = new GObject.registerClass(class SimpleMonitorPrefs extends Gt
         this.attach(spinButton, 1, 1, 1, 1)
     }
 
-    _addSwitch(params){
-        let lbl = new Gtk.Label({label: params.label,halign : Gtk.Align.END});
+    _addSwitch(params) {
+        let lbl = new Gtk.Label({ label: params.label, halign: Gtk.Align.END });
         this.attach(lbl, params.x, params.y, 1, 1);
-        let sw = new Gtk.Switch({halign : Gtk.Align.END, valign : Gtk.Align.CENTER});
+        let sw = new Gtk.Switch({ halign: Gtk.Align.END, valign: Gtk.Align.CENTER });
         this.attach(sw, params.x + 1, params.y, 1, 1);
-        
-        if(params.help){
+
+        if (params.help) {
             lbl.set_tooltip_text(params.help);
             sw.set_tooltip_text(params.help);
         }
@@ -56,6 +58,10 @@ var MonitorPrefs = new GObject.registerClass(class SimpleMonitorPrefs extends Gt
 
 function buildPrefsWidget() {
     let w = new MonitorPrefs();
-    w.show_all();
+    try {
+        w.show_all();
+    } catch (e) {
+
+    }
     return w;
 }
