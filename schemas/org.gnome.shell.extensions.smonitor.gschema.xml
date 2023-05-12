@@ -15,6 +15,12 @@
       <description>True for percentage, wrong for memory used</description>
     </key>
 
+    <key type="b" name="top-or-ps">
+        <default>true</default>
+        <summary>Get cpu usage from ps or top</summary>
+        <description>ps shows cumulative usage of a process, top shows instant usage</description>
+    </key>
+
     <key type="i" name="sec-update">
       <default>2</default>
       <summary>Show memory percentage</summary>

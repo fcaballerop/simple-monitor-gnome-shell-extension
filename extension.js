@@ -220,19 +220,45 @@ class Indicator extends PanelMenu.Button {
             memPanelLabel.set_text(lblStr);
             });
 
-            let cpuPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%cpu', '--sort=-%cpu']);
-            cpuPOut.then(function(result) {
-            let procs = result.split("\n");
-            for (i = 0; i < 10; i++) {
-                let cpuSpl = procs[i].split(/[ ]+/);
-                let cpuName = "";
-                for (j = 0; j < cpuSpl.length - 1; j++) {
-                cpuName += cpuSpl[j]+" ";
-                }
-                cpuNameLabels[i].set_text(cpuName);
-                cpulLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
+            if (_settings.get_boolean('top-or-ps')) {
+                let cpuPOut = execCommunicate(['top', '-b', '-n', '1', '-o', '%CPU', '-w', '100']);
+                cpuPOut.then(function(result) {
+                    let lines = result.split("\n");
+                    let firstLine = 7;
+                    let foundTop = false;
+                    // We run 11 to ignore the top entry that will probably be there
+                    for (i = firstLine; i < firstLine + 11; i++) {
+                        let i_index = i;
+                        if (foundTop) i_index -= 1;
+                        let splits = lines[i].split(/\s+/);
+                        let processName = "";
+                        cpulLabels[i_index-firstLine].set_text(splits[9]);
+                        for (j = 12; j < splits.length; j++) {
+                            processName += splits[j]+" ";
+                        }
+                        processName = processName.substring(0, 15);
+                        cpuNameLabels[i_index-firstLine].set_text(processName);
+                        if (processName.substring(0,3) == "top") {
+                            foundTop = true;
+                        }
+                    }
+                });
             }
-            });
+            else {
+                let cpuPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%cpu', '--sort=-%cpu']);
+                cpuPOut.then(function(result) {
+                    let procs = result.split("\n");
+                    for (i = 0; i < 10; i++) {
+                        let cpuSpl = procs[i].split(/[ ]+/);
+                        let cpuName = "";
+                        for (j = 0; j < cpuSpl.length - 1; j++) {
+                            cpuName += cpuSpl[j]+" ";
+                        }
+                        cpuNameLabels[i].set_text(cpuName);
+                        cpulLabels[i].set_text(cpuSpl[cpuSpl.length - 1]);
+                    }
+                });
+            }
 
             let memPOut = execCommunicate(['ps', 'axch' ,'-o', 'cmd:15,%mem', '--sort=-%mem']);
             memPOut.then(function(result) {
